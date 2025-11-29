@@ -1,8 +1,65 @@
 import re
 
-grille_allumage = [[0] * 1000 for _ in range(1000)]       # 1 
-grille_luminosite = [[0] * 1000 for _ in range(1000)]     # 2 
+class ControleurLumieres:
+    def __init__(self, taille=1000):
+        self.taille = taille
+        self.grille_allumage = [[0] * taille for _ in range(taille)]
+        self.grille_luminosite = [[0] * taille for _ in range(taille)]
+        
+        self.actions = {
+            "activer": self._allumer,
+            "désactiver": self._eteindre, 
+            "basculer": self._basculer
+        }
+    
+    def _allumer(self, x, y):
+        self.grille_allumage[x][y] = 1
+        self.grille_luminosite[x][y] += 1
+    
+    def _eteindre(self, x, y):
+        self.grille_allumage[x][y] = 0
+        self.grille_luminosite[x][y] = max(0, self.grille_luminosite[x][y] - 1)
+    
+    def _basculer(self, x, y):
+        self.grille_allumage[x][y] = 1 - self.grille_allumage[x][y]
+        self.grille_luminosite[x][y] += 2
+    
+    def traiter_instructions(self, instructions):
+        for ligne in instructions:
+            # Extraire le mot d'action
+            mots = ligne.split()
+            if not mots:
+                continue
+                
+            action_mot = mots[0]
+            if action_mot not in self.actions:
+                print(f"Action non reconnue: {action_mot}")
+                continue
+                
+            # Extraire les coordonnées
+            coords = re.findall(r'\d+', ligne)
+            if len(coords) != 4:
+                print(f"Format de coordonnées invalide: {ligne}")
+                continue
+                
+            x1, y1, x2, y2 = map(int, coords)
+            # S'assurer que x1 <= x2 et y1 <= y2
+            x1, x2 = sorted([x1, x2])
+            y1, y2 = sorted([y1, y2])
+            
+            # Appliquer l'action sur la zone
+            for x in range(x1, x2 + 1):
+                for y in range(y1, y2 + 1):
+                    if 0 <= x < self.taille and 0 <= y < self.taille:
+                        self.actions[action_mot](x, y)
+    
+    def statistiques(self):
+        total_allumees = sum(sum(ligne) for ligne in self.grille_allumage)
+        luminosite_totale = sum(sum(ligne) for ligne in self.grille_luminosite)
+        return total_allumees, luminosite_totale
 
+
+# Instructions d'exemple
 instructions = [
     "activer 887,9 à 959,629",
     "activer 454 398 à 844 448",
@@ -15,38 +72,10 @@ instructions = [
     "basculer 831 394 à 904 860"
 ]
 
-for ligne in instructions:
-    if ligne.startswith("activer"):
-        action = "allumer"
-    elif ligne.startswith("désactiver"):
-        action = "eteindre"
-    elif ligne.startswith("basculer"):
-        action = "basculer"
+# Utilisation
+controleur = ControleurLumieres()
+controleur.traiter_instructions(instructions)
+allumees, luminosite = controleur.statistiques()
 
-    
-    x1, y1, x2, y2 = map(int, re.findall(r'\d+', ligne))
-
-    for x in range(x1, x2 + 1):
-        for y in range(y1, y2 + 1):
-            if action == "allumer":
-                grille_allumage[x][y] = 1
-            elif action == "eteindre":
-                grille_allumage[x][y] = 0
-            elif action == "basculer":
-                grille_allumage[x][y] = 1 - grille_allumage[x][y]
-           
-
-            if action == "allumer":
-                grille_luminosite[x][y] += 1
-            elif action == "eteindre":
-                grille_luminosite[x][y] = max(0, grille_luminosite[x][y] - 1)
-            elif action == "basculer":
-                grille_luminosite[x][y] += 2
-           
-
-
-total_allumees = sum(sum(ligne) for ligne in grille_allumage)
-luminosite_totale = sum(sum(ligne) for ligne in grille_luminosite)
-
-print("Nombre de lumières allumées :", total_allumees)
-print("Luminosité totale :", luminosite_totale)
+print("Nombre de lumières allumées :", allumees)
+print("Luminosité totale :", luminosite)
